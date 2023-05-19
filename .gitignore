@@ -2,3 +2,5 @@ venv*
 *.env
 __pycache__*
 tables.csv
+dummy.txt
+redis_index.json

@@ -1,3 +1,4 @@
+import json
 import time
 from models import RedisDocument, Table, Creds
 from redis_actions import RedisActions
@@ -5,7 +6,7 @@ import mysql.connector, csv
 
 
 cr = Creds()
-redis_client = RedisActions(host=cr.redis.host, password=cr.redis.pwd)
+rdb = RedisActions(host=cr.redis.host, password=cr.redis.pwd)
 
 
 sql_conn = mysql.connector.connect(
@@ -78,7 +79,7 @@ def load_data(docs: list[RedisDocument]):
     """
     Desc: Loads the data to Redis
     """
-    redis_client.pset_keys_json(docs)
+    rdb.pset_keys_json(docs)
     return
 
 
@@ -108,8 +109,7 @@ class MigrationVars():
 
 hr = "\n============================================\n" # horizontal rule
 
-def start_migration():
-    tables = get_tables()
+def migrate_db(tables: list[Table]):
     mvars = MigrationVars()
 
     for t in tables:
@@ -125,6 +125,23 @@ def start_migration():
                 load_data(fmt_mysql2redis(t, rows))
                 mvars.next_page(inserted_rowcount=len(rows))
             time.sleep(mvars.sleep_duration)
+
+def index_redis_docs(tables: list[Table]):
+    with open("redis_index.json") as f:
+        index_data: dict = json.load(f)
+
+    for t in tables:
+        qry = index_data.get(t.redis_prefix, None)
+        if not qry: pass
+        print(f"{hr} INDEXING DOCS: {t.redis_prefix}")
+        rdb.redis_client.execute_command(qry)
+        print(f"DONE {hr}")
+
+
+def start_migration():
+    tables = get_tables()
+    migrate_db(tables)
+    index_redis_docs(tables)
         
 
 

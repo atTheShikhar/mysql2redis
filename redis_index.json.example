@@ -1,0 +1,3 @@
+{
+    <redis_prefix>: <redis index query. See: https://redis.io/docs/stack/search/indexing_json/>
+}
